@@ -1,0 +1,54 @@
+name: Docker build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t elib-v2-be .
+
+      - name: Run http containers then remove 
+        run: |
+          docker run -d -p 8000:8000 --name elib-v2-be-test elib-v2-be
+          sleep 10
+          docker ps
+          docker logs elib-v2-be-test
+          docker stop elib-v2-be-test
+          docker rm elib-v2-be-test
+      
+      - name: Dockerhub login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN}}
+
+      - name: Build and push docker image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/elib-v2-be:latest
+
+        
+
+      # - name: Run websocket containers then remove 
+      #   run: |
+      #     docker run -d -p 8080:8080 --name reverb-test elib-v2-be \
+      #       php artisan reverb:start -vvv
+      #     sleep 10
+      #     docker ps
+      #     docker logs reverb-test
+      #     docker stop reverb-test
+      #     docker rm reverb-test
+
+
+       
